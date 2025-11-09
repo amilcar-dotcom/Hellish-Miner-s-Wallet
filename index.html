@@ -6,52 +6,52 @@
 <title>Hellish Miner´s Wallet</title>
 <style>
   body {
-    margin: 0;
-    font-family: "Poppins", sans-serif;
-    background-color: #0f1116;
-    color: #eaeaea;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    min-height: 100vh;
+  margin: 0;
+  font-family: "Poppins", sans-serif;
+  background-color: #0f1116;
+  color: #eaeaea;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
   }
 
   h1 {
-    margin-top: 20px;
-    color: #ffd33d;
+  margin-top: 20px;
+  color: #ffd33d;
   }
 
   .menu {
-    display: flex;
-    justify-content: center;
-    margin: 20px 0;
-    gap: 10px;
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+  gap: 10px;
   }
 
   button {
-    background-color: #1a1d24;
-    color: #ffd33d;
-    border: 1px solid #333;
-    padding: 10px 15px;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: bold;
-    transition: all 0.3s;
+  background-color: #1a1d24;
+  color: #ffd33d;
+  border: 1px solid #333;
+  padding: 10px 15px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s;
   }
 
   button:hover {
-    background-color: #ffd33d;
-    color: #1a1d24;
+   background-color: #ffd33d;
+  color: #1a1d24;
   }
 
   .section {
-    display: none;
-    width: 90%;
-    max-width: 400px;
-    background-color: #1a1d24;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 0 15px rgba(255, 211, 61, 0.1);
+  display: none;
+  width: 90%;
+  max-width: 400px;
+  background-color: #1a1d24;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 0 15px rgba(255, 211, 61, 0.1);
   }
 
   .section.active {
@@ -122,6 +122,7 @@
   }
 </style>
 </head>
+
 <body>
 <h1>Hellish Miner´s Wallet</h1>
 <div id="loginBox" class="section active">
@@ -133,6 +134,7 @@
   <button onclick="acceder()">Acceder</button>
   <div id="loginMsg"></div>
 </div>
+
 <!-- Contenedor alineado a la derecha arriba -->
 <div style="position: absolute; top: 20px; right: 30px; text-align: right; z-index: 10;">
   <div id="userInfo" style="display:none; color:#ffd33d; font-weight:bold;">
@@ -148,6 +150,7 @@
 </div>
 <script>
 function acceder() {
+  
   const adminVal = document.getElementById('adminInput').value.trim();
   const walletVal = document.getElementById('walletInput').value.trim();
   const msg = document.getElementById('loginMsg');
@@ -159,7 +162,8 @@ function acceder() {
   }
   adminKey = adminVal;
   walletKey = walletVal;
-  // Verificar si la wallet es válida
+// 
+
   fetch(`${apiUrl}/wallet`, { headers: { "X-Api-Key": walletKey } })
     .then(res => res.ok ? res.json() : Promise.reject())
     .then(data => {
