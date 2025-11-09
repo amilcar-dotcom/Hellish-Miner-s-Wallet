@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Hellish Miner´s Wallet</title>
+<style>
+  body {
+    margin: 0;
+    font-family: "Poppins", sans-serif;
+    background-color: #0f1116;
+    color: #eaeaea;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  h1 {
+    margin-top: 20px;
+    color: #ffd33d;
+  }
+
+  .menu {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+    gap: 10px;
+  }
+
+  button {
+    background-color: #1a1d24;
+    color: #ffd33d;
+    border: 1px solid #333;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s;
+  }
+
+  button:hover {
+    background-color: #ffd33d;
+    color: #1a1d24;
+  }
+
+  .section {
+    display: none;
+    width: 90%;
+    max-width: 400px;
+    background-color: #1a1d24;
+    padding: 20px;
+    border-radius: 12px;
+    box-shadow: 0 0 15px rgba(255, 211, 61, 0.1);
+  }
+
+  .section.active {
+    display: block;
+  }
+
+  input, textarea {
+    width: 100%;
+    margin-top: 8px;
+    padding: 10px;
+    background: #0f1116;
+    border: 1px solid #333;
+    border-radius: 8px;
+    color: #eaeaea;
+  }
+
+  .invoice-box {
+    margin-top: 10px;
+    word-wrap: break-word;
+    background: #0f1116;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    text-align: center;
+  }
+
+  .success {
+    color: #00ff99;
+    font-weight: bold;
+    margin-top: 10px;
+  }
+
+  .error {
+    color: #ff5050;
+    font-weight: bold;
+    margin-top: 10px;
+  }
+
+  #balance {
+    margin-top: 10px;
+    font-size: 1.2em;
+    color: #00ff99;
+  }
+
+  #historyList {
+    list-style: none;
+    padding: 0;
+    margin: 10px 0;
+  }
+
+  #historyList li {
+    background-color: #0f1116;
+    padding: 10px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border: 1px solid #333;
+  }
+
+  canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+  }
+
+  #qrcode {
+    margin-top: 10px;
+  }
+</style>
+</head>
+<body>
+<h1>Hellish Miner´s Wallet</h1>
+<div id="loginBox" class="section active">
+  <h3>Usuario</h3>
+  <label for="adminInput">Admin Key</label>
+  <input type="text" id="adminInput" placeholder="Admin Key" />
+  <label for="walletInput">Wallet Key</label>
+  <input type="text" id="walletInput" placeholder="Wallet Key" />
+  <button onclick="acceder()">Acceder</button>
+  <div id="loginMsg"></div>
+</div>
+<!-- Contenedor alineado a la derecha arriba -->
+<div style="position: absolute; top: 20px; right: 30px; text-align: right; z-index: 10;">
+  <div id="userInfo" style="display:none; color:#ffd33d; font-weight:bold;">
+    <button id="changeUserBtn" style="background:#333; color:#fffffe; border-radius:6px; border:1px solid #ffd33d; padding:5px 10px; cursor:pointer;" onclick="cambiarUsuario()">Cambiar usuario</button>
+    <br>
+    <select id="userSelect" style="margin-top:10px; background:#1a1d24; color:#ffd33d; border-radius:6px; border:1px solid #ffd33d; padding:5px 10px; cursor:pointer; display:none;" onchange="seleccionarUsuario(this.value)">
+      <option value="">Usuarios previos</option>
+    </select>
+    <div style="margin-top:10px;">
+      Usuario conectado: <span id="userName"></span>
+    </div>
+  </div>
+</div>
+<script>
+function acceder() {
+  const adminVal = document.getElementById('adminInput').value.trim();
+  const walletVal = document.getElementById('walletInput').value.trim();
+  const msg = document.getElementById('loginMsg');
+  if (!adminVal || !walletVal) {
+    msg.textContent = "Por favor ingresa ambas claves.";
+    msg.className = "error";
+    document.getElementById('userInfo').style.display = "none";
+    return;
+  }
+  adminKey = adminVal;
+  walletKey = walletVal;
+  // Verificar si la wallet es válida
+  fetch(`${apiUrl}/wallet`, { headers: { "X-Api-Key": walletKey } })
+    .then(res => res.ok ? res.json() : Promise.reject())
+    .then(data => {
+      msg.textContent = "Acceso exitoso.";
+      msg.className = "success";
+      document.getElementById('loginBox').style.display = "none";
+      document.getElementById('userInfo').style.display = "block";
+      document.getElementById('userName').textContent = data.name || "Usuario";
+      updateBalance();
+      guardarUsuario(data.name || "Usuario", adminVal, walletVal);
+      mostrarUsuariosGuardados();
+    })
+    .catch(() => {
+      msg.textContent = "Error: no se pudo acceder al usuario.";
+      msg.className = "error";
+      document.getElementById('userInfo').style.display = "none";
+    });
+}
+
+function cambiarUsuario() {
+  adminKey = "";
+  walletKey = "";
+  document.getElementById('adminInput').value = "";
+  document.getElementById('walletInput').value = "";
+  document.getElementById('loginBox').style.display = "block";
+  document.getElementById('userInfo').style.display = "none";
+  document.getElementById('balance').textContent = "Balance: ... sats";
+  mostrarUsuariosGuardados();
+}
+
+function guardarUsuario(nombre, admin, wallet) {
+  let usuarios = JSON.parse(localStorage.getItem("usuariosWallet") || "[]");
+  // Evitar duplicados por walletKey
+  if (!usuarios.some(u => u.wallet === wallet)) {
+    usuarios.push({ nombre, admin, wallet });
+    localStorage.setItem("usuariosWallet", JSON.stringify(usuarios));
+  }
+}
+
+function mostrarUsuariosGuardados() {
+  const select = document.getElementById('userSelect');
+  let usuarios = JSON.parse(localStorage.getItem("usuariosWallet") || "[]");
+  select.innerHTML = '<option value="">Usuarios previos</option>';
+  usuarios.forEach((u, idx) => {
+    select.innerHTML += `<option value="${idx}">${u.nombre}</option>`;
+  });
+  select.style.display = usuarios.length ? "inline-block" : "none";
+}
+
+function seleccionarUsuario(idx) {
+  let usuarios = JSON.parse(localStorage.getItem("usuariosWallet") || "[]");
+  if (usuarios[idx]) {
+    document.getElementById('adminInput').value = usuarios[idx].admin;
+    document.getElementById('walletInput').value = usuarios[idx].wallet;
+    acceder();
+  }
+}
+
+window.addEventListener("DOMContentLoaded", mostrarUsuariosGuardados);
+</script>
+<div id="balance">Balance: ... sats</div>
+
+<div class="menu">
+  <button onclick="showSection('enviar')">Enviar</button>
+  <button onclick="showSection('recibir')">Recibir</button>
+  <button onclick="showSection('historial')">Historial</button>
+</div>
+
+<div id="enviar" class="section">
+  <h3>Enviar pago ⚡</h3>
+  <label>Código LN a pagar</label>
+  <input type="text" id="bolt11" placeholder="Código LN">
+  <button onclick="enviarPago()">Enviar</button>
+  <div id="sendMsg"></div>
+</div>
+<div id="recibir" class="section">
+  <h3>Recibir pago ⚡</h3>
+  <label>Monto en sats</label>
+  <input type="number" id="amount" placeholder="Ej: 1000" />
+  <label>Nota (opcional)</label>
+  <input type="text" id="memo" placeholder="Ej: Gracias!" />
+  <button onclick="crearInvoice()">Generar factura</button>
+  <div class="invoice-box" id="invoice"></div>
+  <div id="qrcode"></div>
+  <div id="receiveMsg"></div>
+</div>
+
+<div id="historial" class="section">
+  <h3>Historial de transacciones</h3>
+  <ul id="historyList"></ul>
+  <button onclick="clearHistory()">🧹 Limpiar historial</button>
+</div>
+
+<canvas id="confettiCanvas"></canvas>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+
+<script>
+const apiUrl = "http://chirilicas.com:5000/api/v1";
+let walletKey = "";
+let adminKey = "";
+
+function showSection(id) {
+  document.querySelectorAll('.section').forEach(sec => sec.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+async function updateBalance() {
+  if (!walletKey) {
+    document.getElementById('balance').textContent = "Balance: ... sats";
+    return;
+  }
+  try {
+    const res = await fetch(`${apiUrl}/wallet`, { headers: { "X-Api-Key": walletKey } });
+    const data = await res.json();
+    const sats = Math.round(data.balance / 1000);
+    document.getElementById('balance').textContent = `Balance: ${sats} sats`;
+  } catch {
+    document.getElementById('balance').textContent = "Error al obtener balance";
+  }
+}
+setInterval(updateBalance, 10000);
+
+async function crearInvoice() {
+  if (!walletKey) {
+    document.getElementById('receiveMsg').textContent = "Ingresa la Wallet Key.";
+    document.getElementById('receiveMsg').className = "error";
+    return;
+  }
+  const amount = parseInt(document.getElementById('amount').value);
+  const memo = document.getElementById('memo').value || "Pago recibido";
+  const msg = document.getElementById('receiveMsg');
+  const invoiceBox = document.getElementById('invoice');
+  const qrContainer = document.getElementById('qrcode');
+
+  msg.textContent = "";
+  invoiceBox.textContent = "";
+  qrContainer.innerHTML = "";
+
+  try {
+    const res = await fetch(`${apiUrl}/payments`, {
+      method: "POST",
+      headers: {
+        "X-Api-Key": walletKey,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ out: false, amount, memo })
+    });
+    const data = await res.json();
+    if (data.bolt11) {
+      invoiceBox.textContent = data.bolt11;
+      msg.textContent = `Factura generada por ${amount} sats`;
+      msg.className = "success";
+      addToHistory(`Factura creada: ${amount} sats`);
+      
+      // ✅ Generar QR automáticamente
+      const qr = new QRious({
+        element: document.createElement('canvas'),
+        value: data.bolt11,
+        size: 200,
+        background: '#0f1116',
+        foreground: '#ffd33d'
+      });
+      qrContainer.appendChild(qr.element);
+
+      startInvoiceCheck(data.payment_hash, amount);
+    } else {
+      msg.textContent = "Error al generar factura";
+      msg.className = "error";
+    }
+  } catch {
+    msg.textContent = "Error al conectar con el servidor";
+    msg.className = "error";
+  }
+}
+
+async function enviarPago() {
+  if (!adminKey) {
+    document.getElementById('sendMsg').textContent = "Ingresa la Admin Key.";
+    document.getElementById('sendMsg').className = "error";
+    return;
+  }
+  const bolt11 = document.getElementById('bolt11').value.trim();
+  const msg = document.getElementById('sendMsg');
+  msg.textContent = "";
+
+  if (!bolt11) {
+    msg.textContent = "Ingresa un código LN válido.";
+    msg.className = "error";
+    return;
+  }
+
+  try {
+    const res = await fetch(`${apiUrl}/payments`, {
+      method: "POST",
+      headers: {
+        "X-Api-Key": adminKey,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ out: true, bolt11 })
+    });
+    const data = await res.json();
+    if (data.payment_hash) {
+      const satsEnviados = Math.round(data.amount / 1000) || "desconocido";
+      msg.textContent = `Pago enviado con éxito ⚡ (${satsEnviados} sats)`;
+      msg.className = "success";
+      addToHistory(`Pago enviado - ${satsEnviados} sats - Hash: ${data.payment_hash}`);
+      confetti();
+      document.getElementById('bolt11').value = "";
+      updateBalance();
+    } else {
+      msg.textContent = "Error al enviar pago.";
+      msg.className = "error";
+    }
+  } catch {
+    msg.textContent = "Error de conexión.";
+    msg.className = "error";
+  }
+}
+
+function addToHistory(text) {
+  const li = document.createElement("li");
+  li.textContent = `${new Date().toLocaleString()} - ${text}`;
+  document.getElementById("historyList").prepend(li);
+  saveHistory();
+}
+
+function saveHistory() {
+  const items = Array.from(document.querySelectorAll("#historyList li")).map(li => li.textContent);
+  localStorage.setItem("walletHistory", JSON.stringify(items));
+}
+
+function loadHistory() {
+  const saved = JSON.parse(localStorage.getItem("walletHistory") || "[]");
+  saved.forEach(text => {
+    const li = document.createElement("li");
+    li.textContent = text;
+    document.getElementById("historyList").appendChild(li);
+  });
+}
+
+function clearHistory() {
+  localStorage.removeItem("walletHistory");
+  document.getElementById("historyList").innerHTML = "";
+}
+
+function confetti() {
+  const canvas = document.getElementById('confettiCanvas');
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const pieces = new Array(100).fill().map(() => ({
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height - canvas.height,
+    size: Math.random() * 6 + 4,
+    color: `hsl(${Math.random() * 360}, 100%, 60%)`,
+    speed: Math.random() * 3 + 2
+  }));
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    pieces.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, 2 * Math.PI);
+      ctx.fillStyle = p.color;
+      ctx.fill();
+      p.y += p.speed;
+      if (p.y > canvas.height) p.y = -10;
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+  setTimeout(() => (canvas.width = canvas.height = 0), 3000);
+}
+
+async function startInvoiceCheck(hash, amount) {
+  const msg = document.getElementById('receiveMsg');
+  const check = setInterval(async () => {
+    try {
+      const res = await fetch(`${apiUrl}/payments/${hash}`, { headers: { "X-Api-Key": walletKey } });
+      const data = await res.json();
+      if (data.paid) {
+        clearInterval(check);
+        const satsPagados = Math.round(data.amount / 1000) || amount;
+        msg.textContent = `Pago recibido con éxito: ${satsPagados} sats ⚡`;
+        msg.className = "success";
+        addToHistory(`Pago recibido - ${satsPagados} sats`);
+        confetti();
+        updateBalance();
+        document.getElementById('amount').value = "";
+        document.getElementById('memo').value = "";
+        document.getElementById('invoice').textContent = "";
+        document.getElementById('qrcode').innerHTML = "";
+      }
+    } catch {}
+  }, 5000);
+}
+
+loadHistory();
+</script>
+<footer style="text-align: center; margin-top: 40px; color: gray; font-size: 14px;"> DESARROLADO POR LOS CHICOS DE <strong> Hellish Miners </strong>
+</footer>
+</body>
+</html>
