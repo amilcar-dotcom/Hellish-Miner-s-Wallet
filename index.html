@@ -87,7 +87,7 @@
   .error {
     color: #ff5050;
     font-weight: bold;
-    margin-top: 10px;
+    margin-top: 15px;
   }
 
   #balance {
@@ -125,6 +125,7 @@
 
 <body>
 <h1>Hellish Miner´s Wallet</h1>
+<!--para logearse-->
 <div id="loginBox" class="section active">
   <h3>Usuario</h3>
   <label for="adminInput">Admin Key</label>
@@ -135,7 +136,7 @@
   <div id="loginMsg"></div>
 </div>
 
-<!-- Contenedor alineado a la derecha arriba -->
+<!--usuario conectado-->
 <div style="position: absolute; top: 20px; right: 30px; text-align: right; z-index: 10;">
   <div id="userInfo" style="display:none; color:#ffd33d; font-weight:bold;">
     <button id="changeUserBtn" style="background:#333; color:#fffffe; border-radius:6px; border:1px solid #ffd33d; padding:5px 10px; cursor:pointer;" onclick="cambiarUsuario()">Cambiar usuario</button>
@@ -150,7 +151,7 @@
 </div>
 <script>
 function acceder() {
-  
+  //casillas de texto para logearse
   const adminVal = document.getElementById('adminInput').value.trim();
   const walletVal = document.getElementById('walletInput').value.trim();
   const msg = document.getElementById('loginMsg');
@@ -160,10 +161,11 @@ function acceder() {
     document.getElementById('userInfo').style.display = "none";
     return;
   }
+  //las llaves
+  
   adminKey = adminVal;
   walletKey = walletVal;
-// 
-
+//acceder a la wallet
   fetch(`${apiUrl}/wallet`, { headers: { "X-Api-Key": walletKey } })
     .then(res => res.ok ? res.json() : Promise.reject())
     .then(data => {
@@ -182,7 +184,7 @@ function acceder() {
       document.getElementById('userInfo').style.display = "none";
     });
 }
-
+//cambiar usuario
 function cambiarUsuario() {
   adminKey = "";
   walletKey = "";
@@ -193,16 +195,16 @@ function cambiarUsuario() {
   document.getElementById('balance').textContent = "Balance: ... sats";
   mostrarUsuariosGuardados();
 }
-
+//guardar usuario en localstorage
 function guardarUsuario(nombre, admin, wallet) {
   let usuarios = JSON.parse(localStorage.getItem("usuariosWallet") || "[]");
-  // Evitar duplicados por walletKey
+  // para que no se dupliquen lo de arriba
   if (!usuarios.some(u => u.wallet === wallet)) {
     usuarios.push({ nombre, admin, wallet });
     localStorage.setItem("usuariosWallet", JSON.stringify(usuarios));
   }
 }
-
+//acceso a usarios
 function mostrarUsuariosGuardados() {
   const select = document.getElementById('userSelect');
   let usuarios = JSON.parse(localStorage.getItem("usuariosWallet") || "[]");
@@ -212,7 +214,7 @@ function mostrarUsuariosGuardados() {
   });
   select.style.display = usuarios.length ? "inline-block" : "none";
 }
-
+s
 function seleccionarUsuario(idx) {
   let usuarios = JSON.parse(localStorage.getItem("usuariosWallet") || "[]");
   if (usuarios[idx]) {
@@ -221,7 +223,7 @@ function seleccionarUsuario(idx) {
     acceder();
   }
 }
-
+//nota 6 addEventListener se cambia para iphone
 window.addEventListener("DOMContentLoaded", mostrarUsuariosGuardados);
 </script>
 <div id="balance">Balance: ... sats</div>
@@ -464,6 +466,8 @@ async function startInvoiceCheck(hash, amount) {
 }
 
 loadHistory();
+//gracias rodri por todo :)
+//nota final advertencia al modificar el codigo advertimos que este codigo fue creado bajo la influncia de sueño y cafeinano nos asemos cargo si al modificarlo no funciona recomendacion resar 1 padre nuestro y un ave maria fin del comunicado gracias por su atencion jajajaj
 </script>
 <footer style="text-align: center; margin-top: 40px; color: gray; font-size: 14px;"> DESARROLADO POR LOS CHICOS DE <strong> Hellish Miners </strong>
 </footer>
